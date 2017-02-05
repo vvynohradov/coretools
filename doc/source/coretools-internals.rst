@@ -74,7 +74,7 @@ The result is an instance of the HardwareManager class, which is itself a **cont
 so processing of the command line continues.  The next portion of the command line
 is ``connect_direct 1``, which is a method defined in HardwareManager.  Since 1
 was a positional argument on the command line, it is passed as positional argument
-to ``connect_direct.
+to ``connect_direct``.
 
 .. py:module:: iotile.core.hw.hwmanager
 
