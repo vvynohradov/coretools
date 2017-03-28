@@ -2,9 +2,80 @@ import logging
 import tornado.gen
 import binascii
 import struct
+import monotonic
 from mqtt_client import OrderedAWSIOTClient
 from topic_validator import MQTTTopicValidator
 from iotile.core.exceptions import EnvironmentError, ArgumentError, ValidationError
+
+
+DISCONNECT_TIMEOUT = 30  # disconnect devices where there has been no activity in 30 seconds
+
+
+class AWSIOTConnection(object):
+    """A small object for holding state asssociated with an open connections
+
+    This is primarily for facilitating maintaining state associated with a
+    connection and keeping track of the last time it was touched so that
+    we know when to forcibly disconnect the connection because of inactivity
+
+    Args:
+        key (string): The connection key used to make sure messages come from
+            the same source
+        client (string): A client identifier that is used to mark responses
+        connection_id (int): An internal id for the connection returned by
+            DeviceManager.
+    """
+
+    def __init__(self, key, client, connection_id):
+        self._key = key
+        self._client = client
+        self._connection_id = connection_id
+        self._last_touch = monotonic.monotonic()
+
+    @property
+    def key(self):
+        """The key set when this connection was opened
+        """
+
+        return self._key
+
+    @property
+    def client(self):
+        """The client name set when this connection was opened
+        """
+
+        return self._client
+
+    @property
+    def connection_id(self):
+        """The internal connection id set when this connection was opened
+        """
+
+        return self._connection_id
+
+    @property
+    def age(self):
+        """The number of seconds since the last time this connection was touched
+        """
+
+        return monotonic.monotonic() - self._last_touch
+
+    def touch(self):
+        """Update the internal last_touch time to now
+        """
+
+        self._last_touch = monotonic.monotonic()
+
+    def expired(self, expiry_time):
+        """Check if the last touch is > expire_time seconds old
+
+        Args:
+            expiry_time (float): the maximum number of seconds
+                before expiring this connection
+        """
+
+        return (monotonic.monotonic() - self._last_touch) > expiry_time
+
 
 class AWSIOTGatewayAgent(object):
     """An agent for serving access to devices over AWSIOT
@@ -22,6 +93,7 @@ class AWSIOTGatewayAgent(object):
         self._args = args
         self._manager = manager
         self._advertisement_callback = None
+        self._disconnector_callback = None
         self._loop = loop
         self.client = None
         self.slug = None
@@ -47,6 +119,7 @@ class AWSIOTGatewayAgent(object):
 
         return "d--0000-0000-0000-{}".format(idhex)
 
+    @classmethod
     def _extract_device_uuid(cls, slug):
         """Turn a string slug into a UUID
         """
@@ -71,8 +144,14 @@ class AWSIOTGatewayAgent(object):
         self._prepare()
 
     def stop(self):
+        """Stop this gateway agent
+        """
+
         if self._advertisement_callback is not None:
             self._advertisement_callback.stop()
+
+        if self._disconnector_callback is not None:
+            self._disconnector_callback.stop()
 
         self.client.disconnect()
 
@@ -95,6 +174,9 @@ class AWSIOTGatewayAgent(object):
             self._advertisement_callback.start()
         else:
             self._logger.info("No advertisement_interval is configured, devices will not be scannable")
+
+        # Set up a callback that disconnects devices that have not been touched in a timeout event
+        self._disconnector_callback = tornado.ioloop.PeriodicCallback(self._cleanup_connections, DISCONNECT_TIMEOUT*1000, self._loop)
 
     def _bind_topics(self):
         self.client.subscribe(self.topics.scan_topic, self._on_scan_request, ordered=False)
@@ -130,12 +212,14 @@ class AWSIOTGatewayAgent(object):
             return None
 
         data = self._connections[uuid]
-        if key != data['key']:
+        if key != data.key:
             message = {}
             message['action'] = action
             message['failure_reason'] = 'Invalid key'
             self._publish_status(slug, 'invalid_message', message)
             return None
+
+        data.touch()
 
         return data['connection_id']
 
@@ -204,7 +288,7 @@ class AWSIOTGatewayAgent(object):
 
     def _on_rpc(self, sequence, topic, message_type, message):
         """Process a request to send an RPC to an IOTile device
-        
+
         Args:
             sequence (int): The sequence number of the packet received
             topic (string): The topic this message was received on
@@ -431,7 +515,7 @@ class AWSIOTGatewayAgent(object):
         message['success'] = resp['success']
         if resp['success']:
             conn_id = resp['connection_id']
-            self._connections[uuid] = {'key': key, 'client': client, 'connection_id': conn_id}
+            self._connections[uuid] = AWSIOTConnection(key, client, conn_id)
         else:
             message['failure_reason'] = resp['reason']
 
@@ -465,6 +549,22 @@ class AWSIOTGatewayAgent(object):
         # for this agent.
 
         self.client.publish(self.topics.status_topic, 'scan_response', message)
+
+    @tornado.gen.coroutine
+    def _cleanup_connections(self):
+        """Periodic task to prune connections where the other side stopped responding
+        """
+
+        to_remove = []
+
+        for uuid, conn in self._connections:
+            if conn.expired(DISCONNECT_TIMEOUT):
+                to_remove.append(uuid)
+
+        # TODO: safely disconnect here.  We need to ignore any additional
+        # messages received on this connection after this point since the
+        # disconnect operation itself will be asynchronous.
+
 
     def _publish_advertisements(self):
         devices = self._manager.scanned_devices
