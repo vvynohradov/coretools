@@ -1,25 +1,26 @@
 """Auth providers are classes that can encrypt, decrypt, sign or verify data from IOTile devics
 
 All auth providers must inherit from the AuthProvider class defined in this file and override the
-methods that it provides with their own implementations.  
+methods that it provides with their own implementations.
 """
 
 import pkg_resources
-from iotile.core.exceptions import NotFoundError, ArgumentError
+from iotile.core.exceptions import NotFoundError
 
 HashOnlySHA256Signature = 0
 HMACSHA256UserKey = 1
 HMACSHA256FactoryKey = 2
 
 KnownSignatureMethods = {
-    HashOnlySHA256Signature:    'hash_only_sha256',        #Data is not signed, there is simply a sha256 integrity check
-    HMACSHA256UserKey:          'hmac_sha256_user_key',    #Data is signed simply with HMAC using a user settable key on the device
-    HMACSHA256FactoryKey:       'hmac_sha256_factory_key'  #Data is signed with HMAC using a factory set secret key associated with the device
+    HashOnlySHA256Signature:    'hash_only_sha256',        # Data is not signed, there is simply a sha256 integrity check
+    HMACSHA256UserKey:          'hmac_sha256_user_key',    # Data is signed simply with HMAC using a user settable key on the device
+    HMACSHA256FactoryKey:       'hmac_sha256_factory_key'  # Data is signed with HMAC using a factory set secret key associated with the device
 }
+
 
 class AuthProvider(object):
     """Base class for all objects that provide a way to authenticate or protect data
-    
+
     Args:
         args (dict): An optional dictionary of AuthProvider specific config information
     """
@@ -31,10 +32,16 @@ class AuthProvider(object):
         self.args = args
 
     @classmethod
-    def FindByName(self, name):
+    def FindByName(cls, name):
+        """Find an AuthProvider plugin by its name.
+
+        Args:
+            name (string): The name of the provider to find
+
+        Returns:
+            AuthProvider: the Auth provider or None if the named provider cannot be found
         """
-        """
-        
+
         for entry in pkg_resources.iter_entry_points('iotile.auth_provider'):
             if entry.name == name:
                 return entry.load()
@@ -89,8 +96,8 @@ class AuthProvider(object):
 
         Returns:
             dict: The signature and any associated metadata about the signature.
-                The signatured itself must always be a bytearray stored under the 
-                'signature' key, however additional keys may be present depending 
+                The signatured itself must always be a bytearray stored under the
+                'signature' key, however additional keys may be present depending
                 on the signature method used.
 
         Raises:
@@ -110,7 +117,7 @@ class AuthProvider(object):
 
         Returns:
             dict: The result of the verification process must always be a bool under the
-                'verified' key, however additional keys may be present depending on the 
+                'verified' key, however additional keys may be present depending on the
                 signature method used.
 
         Raises:
