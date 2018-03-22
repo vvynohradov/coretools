@@ -86,15 +86,15 @@ def main(argv=None):
         for dev in devices:
             variables['UUID'] = dev
             for i in xrange(0, args.max_attempts):
+                if args.pause:
+                    raw_input("--> Waiting for <return> before processing next device")
+
                 try:
                     recipe.run(variables)
                     success.append(dev)
                 except IOTileException as exc:
                     print("--> Error on try %d: %s" % (i+1, str(exc)))
-                    continue
 
-            if args.pause:
-                raw_input("--> Waiting for <return> before processing next device")
     except KeyboardInterrupt:
         print("Break received, cleanly exiting...")
 

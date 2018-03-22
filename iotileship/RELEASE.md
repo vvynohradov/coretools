@@ -2,6 +2,10 @@
 
 All major changes in each released version of IOTileShip are listed here.
 
+## 0.0.2
+
+- SyncCloudStep doesn't change cloud settings unless flag is set.
+
 ## 0.0.1
 
 - First Release. First definitions of RecipeObjects, RecipeActionObjects, and RecipeManager.

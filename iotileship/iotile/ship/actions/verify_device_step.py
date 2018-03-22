@@ -27,7 +27,7 @@ class VerifyDeviceStep(object):
     """
     def __init__(self, args):
         if args.get('port') is None:
-            raise ArgumentError("SetUUIDStep Parameter Missing", parameter_name='port')
+            raise ArgumentError("VerifyDeviceStep Parameter Missing", parameter_name='port')
         self._port              = args['port']
         self._connect           = args.get('connect')
         self._connect_direct    = args.get('connect_direct', 1)
@@ -92,13 +92,13 @@ class VerifyDeviceStep(object):
 
         for report in reports:
             stream_value = report.visible_readings[0].stream
+            print(stream_value)
             if reports_seen.get(stream_value) is not None:
                 reports_seen[stream_value] += 1
 
         for stream in reports_seen.keys():
             if reports_seen[stream] < 2:
-                raise ArgumentError("Realtime Stream not pushing any reports", stream=hex(stream), \
-                    reports_seen=reports_seen[stream])
+                raise ArgumentError("Realtime Stream not pushing any reports", stream=reports_seen)
 
     def run(self):
         with HardwareManager(port=self._port) as hw:

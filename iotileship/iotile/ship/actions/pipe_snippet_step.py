@@ -20,10 +20,10 @@ class PipeSnippetStep(object):
     """
     def __init__(self, args):
         if args.get('context') is None:
-            raise RecipeActionMissingParameter("PromptStep Parameter Missing", \
+            raise RecipeActionMissingParameter("PipeSnippetStep Parameter Missing", \
                 parameter_name='context')
         if args.get('commands') is None:
-            raise RecipeActionMissingParameter("PromptStep Parameter Missing", \
+            raise RecipeActionMissingParameter("PipeSnippetStep Parameter Missing", \
                 parameter_name='commands')
 
         self._context = args['context']
