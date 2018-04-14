@@ -2,6 +2,11 @@
 
 set -e
 
+# If we already have both programs installed, don't do anything
+if [[ -f arm_gcc/bin/arm-none-eabi-gcc && -f arm_qemu/bin/qemu-system-gnuarmeclipse ]]; then
+	exit 0
+fi
+
 rm -rf arm_gcc
 rm -rf arm_qemu
 
