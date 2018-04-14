@@ -10,15 +10,25 @@ sudo: false
 python:
 - '2.7'
 - '3.6'
-os:
-- linux
-- osx
+
+matrix:
+  include:
+    - os: osx
+      language: generic
+      env: TOXENV=py27
+    - os: osx
+      language: generic
+      env: TOXENV=py36
 
 before_install:
 - pwd
 - cd ~
 - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ${TRAVIS_BUILD_DIR}/scripts/update_arm_gcc_mac.sh; fi
 - if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then ${TRAVIS_BUILD_DIR}/scripts/update_arm_gcc_lin.sh; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew list python &>/dev/null || brew install python; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew list python3 &>/dev/null || brew install python3; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install pyenv-virtualenv; fi
 - export PATH=$PATH:~/arm_gcc/bin:~/arm_qemu/bin
 - cd ${TRAVIS_BUILD_DIR}
 - arm-none-eabi-gcc --version
@@ -39,6 +49,7 @@ deploy:
     branch: master
     tags: true
     condition: $TRAVIS_PYTHON_VERSION = "2.7"
+    condition: $TRAVIS_OS_NAME != "osx"
 notifications:
   on_success: always
   on_failure: always
