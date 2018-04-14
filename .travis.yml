@@ -17,8 +17,8 @@ os:
 before_install:
 - pwd
 - cd ~
-- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ${TRAVIS_BUILD_DIR}/scripts/update_arm_gcc_mac.sh"; fi
-- if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then ${TRAVIS_BUILD_DIR}/scripts/update_arm_gcc_lin.sh"; fi
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then ${TRAVIS_BUILD_DIR}/scripts/update_arm_gcc_mac.sh; fi
+- if [[ "$TRAVIS_OS_NAME" != "osx" ]]; then ${TRAVIS_BUILD_DIR}/scripts/update_arm_gcc_lin.sh; fi
 - export PATH=$PATH:~/arm_gcc/bin:~/arm_qemu/bin
 - cd ${TRAVIS_BUILD_DIR}
 - arm-none-eabi-gcc --version
