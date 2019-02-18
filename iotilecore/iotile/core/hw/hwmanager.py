@@ -395,11 +395,13 @@ class HardwareManager(object):
                 parameter has no effect.
         """
 
+        title = ["Watching Broadcast Reports (Ctrl-C to Stop)"]
+
         if self.transport == 'bled112':
-            reg = ComponentRegistry()
-            if reg.get_config('bled112:active-scan') == 'false':
-                self.logger.warning("Warning: active scan not set, you may not see results")
-                time.sleep(2)
+            conf = ConfigManager()
+            if not conf.get('bled112:active-scan'):
+                title.append("")  # empty line as a new line
+                title.append("Warning: active scan not set, you won't see v1 format broadcasts")
 
         if whitelist is not None:
             whitelist = set(whitelist)
@@ -408,7 +410,7 @@ class HardwareManager(object):
             blacklist = set(blacklist)
 
         def _title(_items):
-            return ["Watching Broadcast Reports (Ctrl-C to Stop)"]
+            return title
 
         def _poll():
             results = [x for x in self.iter_broadcast_reports(blocking=False)]

@@ -12,7 +12,7 @@ All major changes in each released version of `iotile-core` are listed here.
   everything if there is an error importing an extension.
 - Fix bug with sharing extensions between ComponentRegistry objects
 - Fix error with multiple proxies with the same class name(#644)
-
+- Fix broadcast warning message
 
 ## 3.26.5
 
